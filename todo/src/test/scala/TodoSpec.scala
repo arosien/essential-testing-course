@@ -15,29 +15,21 @@ import org.http4s.implicits._
 import org.scalacheck._
 import org.scalacheck.Prop._
 
-class CorrectTodoSpec extends TodoSpec("Correct", new TodoAlgebra.InMemoryTodo)
+object CorrectTodoSpec extends TodoSpec("Correct", new TodoService(new TodoAlgebra.InMemoryTodo[IO]).service)
 
-// NOTE: try with different `TodoAlgebra.InMemoryTodo.Bug` values, not just all of them.
-class BuggyTodoSpec extends TodoSpec(
-  "Buggy",
-  new TodoAlgebra.InMemoryTodo.WithBugs(
-    List(TodoAlgebra.InMemoryTodo.Bug.FindReturnsWrongItem)
-    // TodoAlgebra.InMemoryTodo.Bug.values.toList
-  ))
-
-abstract class TodoSpec[Item : Encoder](name: String, alg: => TodoAlgebra.Aux[IO, Item]) extends Properties(s"TodoService.$name") {
+abstract class TodoSpec(name: String, service: HttpService[IO]) extends Properties(s"TodoService.$name") {
 
   import TodoRequest._
 
   property("GET /todos returns 200") =
     run(TodoRequest.GetTodos.toRequest)
-      .runEmptyA(newService)
+      .runEmptyA(service)
       .value
       .status == Status.Ok
 
   property("GET /todos returns JSON []") =
     run(TodoRequest.GetTodos.toRequest)
-      .runEmptyA(newService)
+      .runEmptyA(service)
       .value
       .as[Json].unsafeRunSync() == Json.arr()
 
@@ -55,18 +47,16 @@ abstract class TodoSpec[Item : Encoder](name: String, alg: => TodoAlgebra.Aux[IO
           getResponse <- run(Request[IO](Method.GET, location))
         } yield getResponse
 
-      val (log, _, getResponse) = r.runEmpty(newService).value
+      val (log, _, getResponse) = r.runEmpty(service).value
       val entity = getResponse.as[TodoRequest.PostTodo].attempt.unsafeRunSync()
 
-      val statusIsOk = s"getResponse.status: ${getResponse.status} != ${Status.Ok}" |: getResponse.status == Status.Ok
-      val readEntityMatchesWritten = s"entity: $entity != ${Right(post)}" |: entity == Right(post)
+      val statusIsOk = s"\tgetResponse.status: ${getResponse.status} != ${Status.Ok}" |: getResponse.status == Status.Ok
+      val readEntityMatchesWritten = s"\tentity: $entity != ${Right(post)}" |: entity == Right(post)
 
       Log.show(log) |: statusIsOk && readEntityMatchesWritten
     }
 
-  // TODO: DELETE /todos/{id}
-
-  def newService() = new TodoService(alg).service
+  // TODO: properties for DELETE /todos/{id}
 
   /** Computation that requires a `HttpService` and also logs the request and response.
     * We keep no other state (it is type `Unit`). */
@@ -78,7 +68,7 @@ abstract class TodoSpec[Item : Encoder](name: String, alg: => TodoAlgebra.Aux[IO
   object Log {
     // Pretty-print the log.
     def show[F[_]](log: Log[F]): String =
-      log.flatMap { case (req, res) => List(s">>> $req", s"<<< $res") }
+      ("\trequest/response sequence:" :: log.flatMap { case (req, res) => List(s"\t>>> $req", s"\t<<< $res") })
         .mkString("\n")
   }
 

@@ -9,28 +9,23 @@ import java.time.LocalDate
 
 trait TodoAlgebra[F[_]] {
 
-  type Item
-  type ItemId = Long
-
   /** Construct an `Item`. */
-  def item(value: String, due: Option[LocalDate]): Item
+  def item(value: String, due: Option[LocalDate]): TodoAlgebra.Item
 
   /** Append an `Item` to the list. */
-  def append(item: Item): F[ItemId]
+  def append(item: TodoAlgebra.Item): F[TodoAlgebra.ItemId]
 
   /** Find all the `Item`s in the list. */
-  def findAll(): F[List[Item]]
+  def findAll(): F[List[TodoAlgebra.Item]]
 
   /** Find an `Item` by its `ItemId`. */
-  def find(id: ItemId): F[Option[Item]]
+  def find(id: TodoAlgebra.ItemId): F[Option[TodoAlgebra.Item]]
 
   /** Complete an `Item` with a given `ItemId`. */
-  def complete(id: ItemId): F[Unit]
+  def complete(id: TodoAlgebra.ItemId): F[Unit]
 }
 
 object TodoAlgebra {
-
-  type Aux[F[_], Item0] = TodoAlgebra[F] { type Item = Item0 }
 
   case class Item(value: String, due: Option[LocalDate])
 
@@ -38,9 +33,9 @@ object TodoAlgebra {
     implicit def encoder: Encoder[Item] = deriveEncoder[Item]
   }
 
-  class InMemoryTodo[F[_] : Applicative] extends TodoAlgebra[F] {
+  type ItemId = Long
 
-    type Item = TodoAlgebra.Item
+  class InMemoryTodo[F[_] : Applicative] extends TodoAlgebra[F] {
 
     /* Non-complete items are `Some`, completed items are `None`,
      * so we don't break the Itemid <-> List index invariant. */
@@ -69,33 +64,5 @@ object TodoAlgebra {
 
         ()
       }
-  }
-
-  object InMemoryTodo {
-    import enumeratum._
-
-    sealed trait Bug extends EnumEntry
-
-    object Bug extends Enum[Bug] {
-      val values = findValues
-
-      case object AppendReturnsWrongId extends Bug
-      case object FindAlwaysFails extends Bug
-      case object FindReturnsWrongItem extends Bug
-    }
-
-    class WithBugs[F[_] : Applicative](bugs: List[Bug]) extends InMemoryTodo[F] {
-
-      def chaosBug[A](a: => A)(bug: Bug, f: A => A) =
-        bugs.find(_ == bug).fold(a)(_ => f(a))
-
-      override def append(item: Item): F[ItemId] =
-        chaosBug(super.append(item))(Bug.AppendReturnsWrongId, _ map (_ + 5))
-
-      override def find(id: ItemId): F[Option[Item]] = {
-        val x = chaosBug(super.find(id))(Bug.FindReturnsWrongItem, _ map (_ map (_.copy(value = "ha ha ha!"))))
-        chaosBug(x)(Bug.FindAlwaysFails, _ => Option.empty[Item].pure[F])
-      }
-    }
   }
 }

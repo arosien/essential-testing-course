@@ -10,7 +10,7 @@ import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import scala.util.Try
 
-class TodoService[F[_] : Effect, Item : Encoder](alg: TodoAlgebra.Aux[F, Item]) extends Http4sDsl[F] {
+class TodoService[F[_] : Effect](alg: TodoAlgebra[F]) extends Http4sDsl[F] {
 
   val service: HttpService[F] = {
     HttpService[F] {

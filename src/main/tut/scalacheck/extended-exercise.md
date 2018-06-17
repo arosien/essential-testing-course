@@ -22,10 +22,9 @@ Outline of extended exercise:
     - return response
   - `TodoAlgebra`: interface for the business logic (*details useful only if students are advanced*)
     - explain what `F[_]` is
-    - explain `TodoAlgebra.Aux`: we need this to require a `io.circe.Encoder` of the `TodoAlgebra.Item` type member
     - `InMemoryTodo` implementation
   - `TodoSpec`: our properties checked against an algebra
-    - Uses `TodoAlgebra.Aux[IO, Item]`: why we use `IO` as our testing effect
+    - Uses `TodoAlgebra[IO]`: why we use `IO` as our testing effect
     - `TodoRequest`: ADT with `toRequest: Request[IO]` method so we can write generators of requests
     - `run` method: returns `Http4sTest` RWST monad
       - we need to use the same `HttpService[IO]` for all requests made in a given test, since the service is stateful/mutable
@@ -36,8 +35,8 @@ Outline of extended exercise:
   - New properties should be added to `TodoSpec`.
 - *Exercises*
   - test `DELETE` endpoint using the pattern from `"read your writes"`
-  - explore injecting bugs via `TodoAlgebra.InMemoryTodo.WithBugs`: what breaks? what doesn't break?
-  - inject more bug types via `TodoAlgebra.InMemoryTodo.WithBugs`
+  - explore injecting bugs via `Bugs`: what breaks? what doesn't break?
+  - inject more bug types via `Bugs`
   - Implement and test authentication (see section below)
   - Implement and test idempotent posts (see section below)
   - Implement and test pagination (see section below)
