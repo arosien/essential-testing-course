@@ -11,6 +11,7 @@ import io.circe.syntax._
 import java.time.LocalDate
 import org.http4s._
 import org.http4s.circe._
+import org.http4s.headers.Location
 import org.http4s.implicits._
 import org.scalacheck._
 import org.scalacheck.Prop._
@@ -22,62 +23,27 @@ abstract class TodoSpec(name: String, service: HttpService[IO]) extends Properti
   import TodoRequest._
 
   property("GET /todos returns 200") =
-    run(TodoRequest.GetTodos.toRequest)
-      .runEmptyA(service)
-      .value
+    Trace.run(TodoRequest.GetTodos.toTracedRequest, service)
+      .response
       .status == Status.Ok
 
   property("GET /todos returns JSON []") =
-    run(TodoRequest.GetTodos.toRequest)
-      .runEmptyA(service)
-      .value
-      .as[Json].unsafeRunSync() == Json.arr()
+    Trace.run(TodoRequest.GetTodos.toTracedRequest, service)
+      .entity[Json]
+      .unsafeRunSync == Json.arr()
 
   property("read your writes") =
     forAll(genPostTodo) { (post: TodoRequest.PostTodo) =>
-      val r =
-        for {
-          postResponse <- run(post.toRequest)
+      val trace = Trace.run(Trace.runAndFollowLocation(Trace.lift(post.toRequest)), service)
+      val entity = trace.entity[TodoRequest.PostTodo].unsafeRunSync
 
-          location = postResponse.headers.get(headers.Location).get.uri // TODO: don't just blow up
-
-          // TODO: assert that returned Location matches the /todos/{id} endpoint, maybe URI Template thing
-
-          // actually fetch the content at the Location URI to test the response
-          getResponse <- run(Request[IO](Method.GET, location))
-        } yield getResponse
-
-      val (log, _, getResponse) = r.runEmpty(service).value
-      val entity = getResponse.as[TodoRequest.PostTodo].attempt.unsafeRunSync()
-
-      val statusIsOk = s"\tgetResponse.status: ${getResponse.status} != ${Status.Ok}" |: getResponse.status == Status.Ok
+      val statusIsOk = s"\tresponse.status: ${trace.response.status} != ${Status.Ok}" |: trace.response.status == Status.Ok
       val readEntityMatchesWritten = s"\tentity: $entity != ${Right(post)}" |: entity == Right(post)
 
-      Log.show(log) |: statusIsOk && readEntityMatchesWritten
+      trace.showLog |: statusIsOk && readEntityMatchesWritten
     }
 
   // TODO: properties for DELETE /todos/{id}
-
-  /** Computation that requires a `HttpService` and also logs the request and response.
-    * We keep no other state (it is type `Unit`). */
-  type Http4sTest[F[_], A] = ReaderWriterState[HttpService[F], Log[F], Unit, A]
-
-  /** We log the request/response pairs. */
-  type Log[F[_]] = List[(Request[F], Response[F])]
-
-  object Log {
-    // Pretty-print the log.
-    def show[F[_]](log: Log[F]): String =
-      ("\trequest/response sequence:" :: log.flatMap { case (req, res) => List(s"\t>>> $req", s"\t<<< $res") })
-        .mkString("\n")
-  }
-
-  def run(request: Request[IO]): Http4sTest[IO, Response[IO]] =
-    for {
-      service <- ReaderWriterState.ask[HttpService[IO], Log[IO], Unit]
-      response = service.orNotFound(request).unsafeRunSync()
-      _ <- ReaderWriterState.tell(List(request -> response))
-    } yield response
 
   val genPostTodo: Gen[TodoRequest.PostTodo] =
     for {
@@ -88,6 +54,10 @@ abstract class TodoSpec(name: String, service: HttpService[IO]) extends Properti
 
 /** Algebraic data type representing the various kinds of requests we can make to a `TodoService`. */
 sealed trait TodoRequest {
+
+  def toTracedRequest: Trace.M[IO, Response[IO]] =
+    Trace.lift(toRequest)
+
   def toRequest: Request[IO] =
     this match {
       case TodoRequest.PostTodo(value, Some(due)) =>
@@ -115,4 +85,55 @@ object TodoRequest {
 
   implicit def postDecoder: Decoder[PostTodo] = deriveDecoder[PostTodo]
   implicit val postEntityDecoder: EntityDecoder[IO, PostTodo] = jsonOf[IO, TodoRequest.PostTodo]
+}
+
+case class Trace(response: Response[IO], log: Trace.Log[IO]) {
+
+  def entity[A](implicit decoder: EntityDecoder[IO, A]): IO[Either[Throwable, A]] =
+    response.as[A].attempt
+
+  def showLog: String = Trace.Log.show(log)
+}
+
+object Trace {
+
+  /** We log the request/response pairs. */
+  type Log[F[_]] = List[(Request[F], Response[F])]
+
+  object Log {
+    // Pretty-print the log.
+    def show[F[_]](log: Log[F]): String =
+      ("\trequest/response sequence:" :: log.flatMap { case (req, res) => List(s"\t>>> $req", s"\t<<< $res") })
+        .mkString("\n")
+  }
+
+  /** Computation that requires a `HttpService` and also logs the request and response.
+    * We keep no other state (it is type `Unit`). */
+  type M[F[_], A] = ReaderWriterState[HttpService[F], Trace.Log[F], Unit, A]
+
+  def lift(request: Request[IO]): M[IO, Response[IO]] =
+    for {
+      service <- ReaderWriterState.ask[HttpService[IO], Trace.Log[IO], Unit]
+      response = service.orNotFound(request).unsafeRunSync()
+      _ <- ReaderWriterState.tell(List(request -> response))
+    } yield response
+
+  def run(request: M[IO, Response[IO]], service: HttpService[IO]): Trace = {
+    val (log, _, getResponse) = request.runEmpty(service).value
+
+    Trace(getResponse, log)
+  }
+
+  def runAndFollowLocation(request: M[IO, Response[IO]]): M[IO, Response[IO]] =
+    for {
+      response <- request
+
+      location = response.headers.get(headers.Location).get // TODO: don't just blow up
+
+      // TODO: assert that returned Location matches the /todos/{id} endpoint, maybe URI Template thing
+
+      // actually fetch the content at the Location URI to test the response
+      getRequest = Request[IO](Method.GET, location.uri)
+      getResponse <- lift(getRequest)
+    } yield getResponse
 }
