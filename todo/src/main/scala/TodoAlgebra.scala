@@ -45,9 +45,11 @@ object TodoAlgebra {
       Item(value, due)
 
     def append(item: Item): F[ItemId] =
-      Applicative[F].pure {
-        items = items :+ Some(item)
-        items.length.toLong
+      items.synchronized {
+        Applicative[F].pure {
+          items = items :+ Some(item)
+          items.length.toLong
+        }
       }
 
     def findAll(): F[List[Item]] =
