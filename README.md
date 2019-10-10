@@ -4,14 +4,14 @@ a.k.a., **Writing Programs That Write Tests: Better Testing With ScalaCheck**.
 
 ## Course
 
-The course materials are written using [tut](https://github.com/tpolecat/tut).
+The course materials are written using [mdoc](https://scalameta.org/mdoc/).
 To generate the course docs, run:
 
 ```
-$ sbt tut
+$ sbt mdoc
 ```
 
-and the machine-checked documentation will be written to `target/scala-2.12/tut`.
+and the machine-checked documentation will be written to `target/mdoc`.
 
 
 ## Exercises
