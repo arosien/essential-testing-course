@@ -1,9 +1,9 @@
 lazy val root = (project in file("."))
-  .aggregate(todo)
-  .dependsOn(todo % "compile->compile;tut->test")
-  .enablePlugins(TutPlugin)
+  // .aggregate(todo)
+  .dependsOn(todo % "compile->compile;compile->test")
+  .enablePlugins(MdocPlugin)
   .settings(
-    scalaVersion := "2.12.6",
+    scalaVersion := "2.12.10",
     libraryDependencies ++=
       "org.scalatest"  %% "scalatest"  % ScalaTestVersion ::
       "org.scalacheck" %% "scalacheck" % ScalaCheckVersion ::
@@ -20,8 +20,8 @@ lazy val todo = (project in file("todo"))
   .settings(
     organization := "io.underscore.testing",
     name := "todo",
-    scalaVersion := "2.12.6",
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6"),
+    scalaVersion := "2.12.10",
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
     libraryDependencies ++= Seq(
       "com.beachape"    %% "enumeratum"          % EnumeratumVersion,
       "io.circe"        %% "circe-generic"       % CirceVersion,
@@ -37,7 +37,8 @@ lazy val todo = (project in file("todo"))
       "-encoding", "utf-8",                // Specify character encoding used by source files.
       "-explaintypes",                     // Explain type errors in more detail.
       "-feature",
-      "-language:higherKinds"
+      "-language:higherKinds",
+      "-Ypartial-unification"
     ),
     testOptions in Test += Tests.Argument(TestFrameworks.ScalaCheck, "-verbosity", "1")
   )

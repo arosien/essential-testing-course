@@ -7,7 +7,7 @@ In this section we discuss some issues that go beyond the basics of ScalaCheck u
 
 We've seen how we can express preconditions by filtering a generator. This can have some issues. Consider the following example, creating a generator to produce strings beginning with "henry".
 
-```tut:silent:book
+```scala mdoc:silent
 import org.scalacheck._
 
 val henry = Gen.alphaStr.filter(_.startsWith("henry"))
@@ -15,7 +15,7 @@ val henry = Gen.alphaStr.filter(_.startsWith("henry"))
 
 When we run a test using this generator we see that no test data was generated.
 
-```tut:book
+```scala mdoc
 import org.scalacheck.Prop.forAll
 
 val startsWithHenry = forAll(henry){ (s: String) => s.startsWith("henry") }
@@ -27,13 +27,18 @@ The result tells us that ScalaCheck is `Exhausted`, meaning it couldn't generate
 
 For the above example we could easily generate conforming strings with the following generator.
 
-```tut:silent:book:
+```scala mdoc:silent:reset
+import org.scalacheck._
+import org.scalacheck.Prop.forAll
+```
+
+```scala mdoc:silent
 val henry = Gen.alphaStr.map(s => "henry" ++ s)
 ```
 
 Now the test runs successfully.
 
-```tut:book:
+```scala mdoc
 val startsWithHenry = forAll(henry){ (s: String) => s.startsWith("henry") }
 
 Test.check(Test.Parameters.default, startsWithHenry)
@@ -44,7 +49,7 @@ Test.check(Test.Parameters.default, startsWithHenry)
 
 There is another way to specify preconditions in ScalaCheck, which we have not seen so far. Instead of specifying a precondition as a filter on a generator we can instead specify it on a property, using the "implication" operator `==>`. The following code shows these two alternate ways in a test for invertability of `Int`.
 
-```tut:silent:book:
+```scala mdoc:silent
 // Filter the generator
 // In this simple case we could also write 
 //  Gen.choose(Int.MinValue + 1, Int.MaxValue)
@@ -70,7 +75,11 @@ When ScalaCheck finds a failing property it will attempt to find a minimal examp
 
 Returning to our example of strings that start with "henry". Imagine we have the following generator, and are testing it with an incorrect property.
 
-```tut:silent:book:
+```scala mdoc:silent:reset
+import org.scalacheck._
+import org.scalacheck.Prop.forAll
+```
+```scala mdoc:silent
 val henry = Gen.alphaStr.map(s => "henry" ++ s)
 val startsWithHenry = forAll(henry){ (s: String) => s.startsWith("harry") }
 ```
@@ -96,11 +105,16 @@ ScalaCheck will happily generate invalid test data during shrinking and then rep
 
 Luckily we can turn off shrinking. One way to avoid it is to use `Prop.forAllNoShrink` instead of `Prop.forAll`. 
 
-```tut:silent:book:
+```scala mdoc:silent:reset
+import org.scalacheck._
+import org.scalacheck.Prop.forAll
+```
+```scala mdoc:silent
+val henry = Gen.alphaStr.map(s => "henry" ++ s)
 val startsWithHenry = Prop.forAllNoShrink(henry){ (s: String) => s.startsWith("harry") }
 ```
 
-```tut:book:
+```scala mdoc
 Test.check(Test.Parameters.default, startsWithHenry)
 ```
 
@@ -109,13 +123,18 @@ Notice that no shrinking is done.
 
 Another way to disable shrinking is to create an implicit instance of `Shrink` that does nothing for the type in question---in this case `String`.
 
-```tut:silent:book:
+```scala mdoc:silent:reset
+import org.scalacheck._
+import org.scalacheck.Prop.forAll
+```
+```scala mdoc:silent
 implicit val noShrink: Shrink[String] = Shrink.shrinkAny
 
+val henry = Gen.alphaStr.map(s => "henry" ++ s)
 val startsWithHenry = forAll(henry){ (s: String) => s.startsWith("harry") }
 ```
 - 
-```tut:book:
+```scala mdoc
 Test.check(Test.Parameters.default, startsWithHenry)
 ```
 
@@ -123,21 +142,26 @@ Once again no shrinking is done.
 
 Working out which type is being shrunk might be difficult, so we can turn off *all* shrinking with this implicit.
 
-```tut:silent:book:
-implicit def noShrink: Shrink[Any] = Shrink.shrinkAny
+```scala mdoc:silent
+implicit def noShrinkAll: Shrink[Any] = Shrink.shrinkAny
 ```
 - 
-```tut:book:
+```scala mdoc
 Test.check(Test.Parameters.default, startsWithHenry)
 ```
 
 Finally, we can get shrinking to work correctly by adding preconditions to any generators that restrict their output through other means.
 
-```tut:silent:book:
+```scala mdoc:silent:reset
+import org.scalacheck._
+import org.scalacheck.Prop.forAll
+```
+```scala mdoc:silent
 val henry = Gen.alphaStr.map(s => "henry" ++ s).suchThat(_.startsWith("henry"))
+val startsWithHenry = forAll(henry){ (s: String) => s.startsWith("harry") }
 ```
 
-```tut:book:
+```scala mdoc
 Test.check(Test.Parameters.default, startsWithHenry)
 ```
 

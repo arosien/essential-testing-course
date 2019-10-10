@@ -14,7 +14,7 @@ of the state matches the system's value.
 
 Let's take a simple (mutable) counter as an example:
 
-```tut:book
+```scala mdoc
 class Counter {
   private var n = 0
 
@@ -29,7 +29,7 @@ When we increment, decrement, or reset a counter, we can't see what the new stat
 is *hidden*; you can tell by the return type of those functions: they all return `Unit`. Only when
 you explicitly get the value of the counter can you know the internal state:
 
-```tut:book
+```scala mdoc
 val c = new Counter
 c.inc
 c.inc

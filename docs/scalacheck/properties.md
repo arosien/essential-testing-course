@@ -8,7 +8,7 @@ quantified* property: the assertion should be true for *all*
 In ScalaCheck, we express universally quantified properties with the
 `Prop.forAll` method:
 
-```tut:silent:book
+```scala mdoc:silent
 import org.scalacheck.Prop.forAll
 
 val invertibility = forAll { (x: Int) => x + -x == 0 }
@@ -23,7 +23,11 @@ a property. Here we passed an anonymous function that takes an `Int` named
 
 Let's reformat and annotate the expression to highlight its parts:
 
-```tut:silent:book
+```scala mdoc:silent:reset
+import org.scalacheck._
+import org.scalacheck.Prop.forAll
+```
+```scala mdoc:silent
 val invertibility =     // the property
   forAll { (x: Int) =>  // universal quantification over a type
     x + -x == 0         // the assertion
@@ -32,7 +36,7 @@ val invertibility =     // the property
 
 Let's test our property:
 
-```tut:book
+```scala mdoc
 import org.scalacheck._
 
 Test.check(Test.Parameters.default, invertibility)

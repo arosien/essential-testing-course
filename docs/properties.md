@@ -57,14 +57,14 @@ quite amazing: the compiler has reduced the universe of possible errors from
 
 This compiles:
 
-```tut:book
+```scala mdoc
 def isSomethingVeryComplicated(s: String): Boolean =
   if (???) true else false
 ```
 
 But this doesn't:
 
-```tut:book:fail
+```scala mdoc:fail
 def isSomethingVeryComplicated(s: String): Boolean =
   "I have no idea what I'm doing, I'm a dog"
 ```

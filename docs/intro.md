@@ -4,7 +4,7 @@
 
 Below is the definition of the absolute value function defined on `Int`.
 
-```tut:silent:book
+```scala mdoc:silent
 def abs(x: Int): Int =
   if (x < 0) -x else x
 ```
@@ -17,7 +17,7 @@ How would you go about testing this method? Do you think this method is correct 
 
 The main invariant of `abs` is that the output should always be non-negative. There is a subtle bug in the implementation, which arises due to the two's-complement representation of `Int` that the JVM uses. The issue is that the smallest negative `Int`, `Int.MinValue`, cannot be represented as a positive `Int`.
 
-```tut:book:
+```scala mdoc
 -Int.MinValue
 ```
 
@@ -30,19 +30,19 @@ How can we do better? The notable thing about `abs` is that coming up with the i
 
 Here's the complete source for such a test, written using ScalaCheck. This finds the problem very quickly.
 
-```tut:silent:book
+```scala mdoc:silent
 import org.scalacheck._
 import org.scalacheck.Prop.forAll
 
 object AbsSpecification extends Properties("Abs") {
-  property("non-negative") = forAll { (x: Int) => Abs.abs(x) >= 0 }
+  property("non-negative") = forAll { (x: Int) => abs(x) >= 0 }
 }
 ```
 
 In the above code, we've specified the property we want to hold with the line
 
 ```scala
-property("non-negative") = forAll { (x: Int) => Abs.abs(x) >= 0 }
+property("non-negative") = forAll { (x: Int) => abs(x) >= 0 }
 ```
 
 ScalaCheck takes care of the rest for us.

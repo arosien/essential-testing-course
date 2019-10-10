@@ -2,7 +2,7 @@
 
 We've learned that generators create data for our tests, but so far we haven't actually used them. When we run a property like
 
-```tut:silent:book
+```scala mdoc:silent
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Gen
 
@@ -23,10 +23,10 @@ As you can see instances of `Arbitrary[A]` just wrap a `Gen[A]`.
 
 The secret sauce that makes `forAll` "just work" is that it has an implicit `Arbitrary` parameter. When there is an `Arbitrary` instance in the implicit scope the compiler will provide that instaces for us, and ScalaCheck will use it to generate values for testing. When there is no instance available we get an error, as shown below.
 
-```tut:silent:book
+```scala mdoc:silent
 trait Foo
 ```
-```tut:fail:book:
+```scala mdoc:fail:
 forAll( (x: Foo) => x == x)
 ```
 
@@ -48,13 +48,13 @@ We can write properties that use a given generator by calling an alternate form 
 
 Let's say we wanted to test the property that adding two odd integers is always even. Wecould write this by first defining a `Gen[Int]` that constucts only odd numbers. Do this before you read on.
 
-```tut:silent:book:
+```scala mdoc:silent:
 val odd: Gen[Int] = Gen.choose(Int.MinValue, Int.MaxValue).suchThat(_ % 2 == 1)
 ```
 
 Now reate a property where we explictly pass generators to `forAll`. Try this yourself now.
 
-```tut:silent:book
+```scala mdoc:silent
 forAll(odd, odd){ (x: Int, y: Int) => (x + y) % 2 == 0 }
 ```
 
@@ -72,7 +72,7 @@ The answer is that the `Arbitrary` generator should cover the entire set of poss
 
 To construct an `Arbitrary` instance from a `Gen` we just call the `apply` method on the `Arbitrary` companion object.
 
-```tut:silent:book:
+```scala mdoc:silent:
 import org.scalacheck.Arbitrary
 
 val arbitraryOdd = Arbitrary(odd)
@@ -80,7 +80,7 @@ val arbitraryOdd = Arbitrary(odd)
 
 Type class composition works in the usual way. Given `Arbitrary` instances for base types the compiler will construct types for tuples and so on. Here's a quick example of constructing a tuple instance. You wouldn't normally write this explicitly in your code.
 
-```tut:book
+```scala mdoc
 val tupleArbitrary: Arbitrary[(Int, Int)] = implicitly
 ```
 

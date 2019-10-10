@@ -111,7 +111,7 @@ Dates are [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Dates) formatted (`Y
 
 Here's an example of making requests and getting (non-buggy) responses:
 
-```tut:silent:book
+```scala mdoc:silent
 import cats.effect._
 import io.circe.Json
 import io.underscore.testing.todo._
@@ -121,13 +121,13 @@ import org.http4s.circe._
 import org.http4s.implicits._
 ```
 
-```tut:book
+```scala mdoc
 val service = new TodoService(new TodoAlgebra.InMemoryTodo[IO]).service
 
-val post = TodoRequest.PostTodo("get milk", Some(LocalDate.of(2018, 5, 18))).toRequest
+// val post = TodoRequest.PostTodo("get milk", Some(LocalDate.of(2018, 5, 18))).toRequest
 
 // Alternatively, you can "manually" create a http4s request like this:
-//val post = Request[IO](Method.POST, Uri.uri("/todos")).withBody(UrlForm(Map("value" -> Seq("get milk"), "due" -> Seq("2018-05-13")))).unsafeRunSync()
+val post = Request[IO](Method.POST, Uri.uri("/todos")).withBody(UrlForm(Map("value" -> Seq("get milk"), "due" -> Seq("2018-05-13")))).unsafeRunSync()
 
 service.orNotFound(post).unsafeRunSync()
 

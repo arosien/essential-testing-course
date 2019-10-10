@@ -13,7 +13,7 @@ That's about it. Unlike most of test frameworks there isn't a lot of ceremony in
 
 Here's a complete example. You can run this within `sbt` in the usual way: put the file somewhere under the `src/test/scala` directory hierarchy, include the correct dependencies, and run the `test` command.
 
-```tut:silent:book:
+```scala mdoc:silent:
 import org.scalacheck._
 import org.scalacheck.Prop.forAll
 

@@ -19,7 +19,7 @@ fail to generate a sample.
 ScalaCheck comes with many, many generators out-of-the-box, which you'll find on
 the `Gen` companion object.
 
-```tut:silent:book
+```scala mdoc:silent
 import org.scalacheck.Gen
 
 Gen.alphaStr    // `String` values like "abc", etc.
@@ -35,13 +35,13 @@ There are many more.
 
 Let's `sample` some values from these generators:
 
-```tut:book:silent
+```scala mdoc:silent
 // A useful utility to generate samples from a Gen
 def sample[A](n: Int)(gen: Gen[A]): List[Option[A]] =
   List.fill(n)(gen.sample)
 ```
 
-```tut:book
+```scala mdoc
 sample(3)(Gen.alphaStr)
 sample(3)(Gen.numStr)
 sample(3)(Gen.posNum[Int])
@@ -62,7 +62,7 @@ use these in the usual way to transform generators.
 For example, we can generate the even positive integers by `mapping` the
 positive integers.
 
-```tut:book:
+```scala mdoc
 // Generate even positive integers
 sample(3)(Gen.posNum[Int].map(x => x * 2))
 ```
@@ -71,7 +71,7 @@ With `flatMap` we can do more complicated transforms, such as using our input to
 choose a generator.
 
 
-```tut:book:
+```scala mdoc
 sample(3)(Gen.choose(0,2).flatMap{ 
   case 0 => Gen.alphaStr
   case 1 => Gen.numStr
@@ -83,7 +83,7 @@ These kind of switching is so common that ScalaCheck provides a number of
 combinators to make it easy. We've already seen `oneOf` above. It also works
 with generators, so we could have also written
 
-```tut:book:
+```scala mdoc
 sample(3)(Gen.oneOf(Gen.alphaStr, Gen.numStr, Gen.const("Hi!")))
 ```
 
@@ -91,7 +91,7 @@ Using `oneOf` each generator is chosen with equal probability. For more
 complicated choices we can use `frequency`, where we give each generator a
 weight. Generators are chosen in proportion to their weight.
 
-```tut:book
+```scala mdoc
 // generate a 'b' twice as much as an 'a', a 'c' three times as much
 sample(3)(Gen.frequency(1 -> 'a', 2 -> 'b', 3 -> 'c'))
 ```
@@ -99,7 +99,7 @@ sample(3)(Gen.frequency(1 -> 'a', 2 -> 'b', 3 -> 'c'))
 Another common use case is to generate a container of a certain size. The
 `containerOf` and `containerOfN` methods do this.
 
-```tut:book:
+```scala mdoc
 // generate a container whose elements come from another `Gen`
 List.fill(3)(Gen.containerOf[List, Int](Gen.oneOf(1, 3, 5)).sample)
 
@@ -116,14 +116,14 @@ preconditions. The main method is `suchThat`, or it's direct synonym
 
 Above we expressed even positive integers as
 
-```tut:book:
+```scala mdoc
 // Generate even positive integers
 sample(3)(Gen.posNum[Int].map(x => x * 2))
 ```
 
 We could alternatively express it as
 
-```tut:silent:book:
+```scala mdoc:silent:
 sample(3)(Gen.posNum[Int].suchThat(_ % 2 == 0))
 // The exact equivalent using filter
 sample(3)(Gen.posNum[Int].filter(_ % 2 == 0))
@@ -154,7 +154,7 @@ These exercises are all about learning to use the API effectively.
 
 Create a `Gen[User]`, where `User` is
 
-```tut:silent:book:
+```scala mdoc:silent:
 final case class User(name: String, age: Int, email: String)
 ```
 
